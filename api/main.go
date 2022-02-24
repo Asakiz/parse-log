@@ -2,10 +2,8 @@ package main
 
 import (
 	"context"
-	"fmt"
-	"log"
 	"os"
-	DBService "parse-log/db"
+	"parse-log/utils"
 	"time"
 
 	"github.com/sirupsen/logrus"
@@ -15,11 +13,9 @@ import (
 )
 
 func main() {
-	input, err := os.Open("log.txt")
-	if err != nil {
-		log.Fatal(err)
+	if err := utils.CheckFilePath(os.Args); err != nil {
+		logrus.Fatal(err)
 	}
-	defer input.Close()
 
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
@@ -35,11 +31,15 @@ func main() {
 
 	defer func() {
 		if err := client.Disconnect(ctx); err != nil {
-			log.Fatal(err)
+			logrus.Fatal(err)
 		}
 	}()
 
-	db := client.Database("main")
-	service := DBService.Service{DB: db, Context: ctx}
-	service.InsertLog(input)
+	logrus.Warn("Populating the Database, please wait...")
+
+	if err := utils.PopulateDB(client, ctx, os.Args[1]); err != nil {
+		logrus.Fatal(err)
+	}
+
+	logrus.Info("Done!")
 }

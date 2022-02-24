@@ -6,7 +6,7 @@ services:
     ports:
       - '27017:27017'
     volumes:
-      - ./data/db:/data/db
+      - /var/run/docker.sock:/var/run/docker.sock:ro
 
 networks:
   gateway:

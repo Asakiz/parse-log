@@ -3,9 +3,10 @@ package database
 import (
 	"context"
 	"encoding/json"
+	"parse-log/models"
+
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
-	"parse-log/models"
 )
 
 type Service struct {
