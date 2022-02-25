@@ -32,7 +32,11 @@ type Response struct {
 }
 
 type AuthenticatedEntity struct {
-	ConsumerID interface{} `json:"consumer_id"`
+	ConsumerID UUID `json:"consumer_id"`
+}
+
+type UUID struct {
+	ID string `json:"uuid"`
 }
 
 type ID struct {
