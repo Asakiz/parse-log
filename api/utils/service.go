@@ -9,8 +9,6 @@ import (
 	"path/filepath"
 
 	DBService "parse-log/db"
-
-	mongo "go.mongodb.org/mongo-driver/mongo"
 )
 
 func CheckFilePath(filePath []string) error {
@@ -25,10 +23,7 @@ func CheckFilePath(filePath []string) error {
 	return nil
 }
 
-func PopulateDB(client *mongo.Client, ctx context.Context, filePath string) error {
-	db := client.Database("main")
-	service := DBService.Service{DB: db, Context: ctx}
-
+func PopulateDB(service *DBService.Service, ctx context.Context, filePath string) error {
 	file, err := os.Open(filePath)
 	if err != nil {
 		return err
@@ -40,6 +35,7 @@ func PopulateDB(client *mongo.Client, ctx context.Context, filePath string) erro
 		var buffer bytes.Buffer
 		var l []byte
 		var isPrefix bool
+
 		for {
 			l, isPrefix, err = reader.ReadLine()
 			buffer.Write(l)
@@ -56,12 +52,15 @@ func PopulateDB(client *mongo.Client, ctx context.Context, filePath string) erro
 			}
 		}
 
-		service.InsertLog(buffer.Bytes())
-
 		if err == io.EOF {
 			break
 		}
+
+		if err := service.InsertLog(buffer.Bytes()); err != nil {
+			return err
+		}
 	}
+
 	if err != io.EOF {
 		return err
 	}
