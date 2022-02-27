@@ -58,7 +58,7 @@ func main() {
 
 	logrus.Warn("Calcutations done, generating the csv file")
 
-	if err := utils.ExportCSV(result, "output/consumer-request.csv", utils.NoAverageTime); err != nil {
+	if err := utils.ExportCSV(result, "consumer-request.csv", utils.NoAverageTime); err != nil {
 		logrus.Fatal(err)
 	}
 
@@ -78,7 +78,7 @@ func main() {
 
 	logrus.Warn("Calcutations done, generating the csv file")
 
-	if err := utils.ExportCSV(result, "output/service-request.csv", utils.NoAverageTime); err != nil {
+	if err := utils.ExportCSV(result, "service-request.csv", utils.NoAverageTime); err != nil {
 		logrus.Fatal(err)
 	}
 
@@ -93,7 +93,7 @@ func main() {
 
 	logrus.Warn("Calcutations done, generating the csv file")
 
-	if err := utils.ExportCSV(result, "output/average-time-request.csv", utils.IsAverageTime); err != nil {
+	if err := utils.ExportCSV(result, "average-time-request.csv", utils.IsAverageTime); err != nil {
 		logrus.Fatal(err)
 	}
 
