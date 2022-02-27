@@ -44,8 +44,6 @@ func main() {
 		logrus.Fatal(err)
 	}
 
-	logrus.Info("Done!")
-
 	consumersID, err := service.GetAllIDs(DBService.Consumers)
 	if err != nil {
 		logrus.Fatal(err)
@@ -57,7 +55,7 @@ func main() {
 		logrus.Fatal(err)
 	}
 
-	logrus.Warn("Calculating the requests for the consumers, please wait...")
+	logrus.Warn("Calculating the requests for the consumers")
 
 	result, err := service.CalcRequests(consumersID, DBService.Consumers)
 	if err != nil {
@@ -70,14 +68,12 @@ func main() {
 		logrus.Fatal(err)
 	}
 
-	logrus.Info("Done!")
-
 	servicesID, err := service.GetAllIDs(DBService.Services)
 	if err != nil {
 		logrus.Fatal(err)
 	}
 
-	logrus.Warn("Calculating the requests for the services, please wait...")
+	logrus.Warn("Calculating the requests for the services")
 
 	result, err = service.CalcRequests(servicesID, DBService.Services)
 	if err != nil {
@@ -90,9 +86,7 @@ func main() {
 		logrus.Fatal(err)
 	}
 
-	logrus.Info("Done!")
-
-	logrus.Warn("Calculating the average time for proxy, gateway and request for service. Please wait...")
+	logrus.Warn("Calculating the average time for proxy, gateway and request for service")
 
 	result, err = service.CalcAverageTime(servicesID)
 	if err != nil {
@@ -104,6 +98,4 @@ func main() {
 	if err := utils.ExportCSV(result, "average-time-request.csv", utils.IsAverageTime); err != nil {
 		logrus.Fatal(err)
 	}
-
-	logrus.Info("Done!")
 }

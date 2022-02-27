@@ -1,6 +1,6 @@
 # parse-log
 
-If you are a linux user could use the Makefile instead the commands. Type ``make`` or ``make help`` on terminal to see the commands available.
+A simple program to extract all the data on a log file, store on a database and make some calculations with this data.
 
 ## Build and Up the mongoDB container
 
@@ -9,4 +9,15 @@ If you are a linux user could use the Makefile instead the commands. Type ``make
 ## Build and Run the application
   Need to be on source code folder, with in that case is ``api/``
 
-    go run main.go <input-file>
+    go run main.go <file-path>
+
+## Linux user/shell
+
+    make all input=<file-path>
+    
+---
+**NOTE**
+
+Type ``make`` or ``make help`` to see all the commands.
+
+---
