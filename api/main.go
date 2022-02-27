@@ -23,6 +23,7 @@ func main() {
 		logrus.WithError(err).Fatal("Failed to connect to MongoDB")
 	}
 
+	// try to ping mongoDB before go to the next step
 	if err = client.Ping(context.TODO(), readpref.Primary()); err != nil {
 		logrus.WithError(err).Fatal("Failed to ping MongoDB")
 	}
