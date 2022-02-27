@@ -48,19 +48,17 @@ func (s *Service) CalcRequests(List []interface{}, arg Arguments) []bson.M {
 	var result []bson.M
 
 	for _, id := range List {
-		showLoadedCursor, err := s.DB.Aggregate(s.Context, []bson.M{
+		cursor, err := s.DB.Aggregate(s.Context, []bson.M{
 			{"$match": bson.M{string(arg): id}},
 			{"$group": bson.M{"_id": "$" + string(arg), "requests": bson.M{"$sum": 1}}}})
 		if err != nil {
 			panic(err)
 		}
 
-		var showsLoaded []bson.M
-		if err = showLoadedCursor.All(s.Context, &showsLoaded); err != nil {
-			panic(err)
+		result, err = extractResult(cursor, result)
+		if err != nil {
+			return nil
 		}
-
-		result = append(result, showsLoaded...)
 	}
 
 	return result
@@ -70,7 +68,7 @@ func (s *Service) CalcAverageTime(List []interface{}) []bson.M {
 	var result []bson.M
 
 	for _, id := range List {
-		showLoadedCursor, err := s.DB.Aggregate(s.Context, []bson.M{
+		cursor, err := s.DB.Aggregate(s.Context, []bson.M{
 			{"$match": bson.M{"service.id": id}},
 			{"$group": bson.M{"_id": "$service.id", "proxy": bson.M{"$sum": "$latencies.proxy"},
 				"gateway": bson.M{"$sum": "$latencies.gateway"},
@@ -80,13 +78,23 @@ func (s *Service) CalcAverageTime(List []interface{}) []bson.M {
 			panic(err)
 		}
 
-		var showsLoaded []bson.M
-		if err = showLoadedCursor.All(s.Context, &showsLoaded); err != nil {
-			panic(err)
+		result, err = extractResult(cursor, result)
+		if err != nil {
+			return nil
 		}
-
-		result = append(result, showsLoaded...)
 	}
 
 	return result
+}
+
+func extractResult(cursor *mongo.Cursor, result []bson.M) ([]bson.M, error) {
+	var showsLoaded []bson.M
+
+	if err := cursor.All(context.TODO(), &showsLoaded); err != nil {
+		return nil, err
+	}
+
+	result = append(result, showsLoaded...)
+
+	return result, nil
 }
