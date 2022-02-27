@@ -2,9 +2,10 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"os"
+	DBService "parse-log/db"
 	"parse-log/utils"
-	"time"
 
 	"github.com/sirupsen/logrus"
 	mongo "go.mongodb.org/mongo-driver/mongo"
@@ -17,29 +18,60 @@ func main() {
 		logrus.Fatal(err)
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-	defer cancel()
-
-	client, err := mongo.Connect(ctx, options.Client().ApplyURI("mongodb://localhost:27017"))
+	client, err := mongo.Connect(context.TODO(), options.Client().ApplyURI("mongodb://127.0.0.1:27017/"))
 	if err != nil {
 		logrus.WithError(err).Fatal("Failed to connect to MongoDB")
 	}
 
-	if err = client.Ping(ctx, readpref.Primary()); err != nil {
+	if err = client.Ping(context.TODO(), readpref.Primary()); err != nil {
 		logrus.WithError(err).Fatal("Failed to ping MongoDB")
 	}
 
 	defer func() {
-		if err := client.Disconnect(ctx); err != nil {
+		if err := client.Disconnect(context.TODO()); err != nil {
 			logrus.Fatal(err)
 		}
 	}()
 
-	logrus.Warn("Populating the Database, please wait...")
+	db := client.Database("main")
+	service := DBService.Service{DB: db.Collection("gateway"), Context: context.TODO()}
 
-	if err := utils.PopulateDB(client, ctx, os.Args[1]); err != nil {
+	logrus.Warn("Populating the database, please wait...")
+
+	if err := utils.PopulateDB(&service, context.TODO(), os.Args[1]); err != nil {
 		logrus.Fatal(err)
 	}
+
+	logrus.Info("Done!")
+
+	consumersID, err := service.GetAllIDs(DBService.Consumers)
+	if err != nil {
+		logrus.Fatal(err)
+	}
+
+	logrus.Warn("Calculating the requests for the consumers, please wait...")
+
+	result := service.CalcRequests(consumersID, DBService.Consumers)
+	fmt.Println(result)
+
+	logrus.Info("Done!")
+
+	servicesID, err := service.GetAllIDs(DBService.Services)
+	if err != nil {
+		logrus.Fatal(err)
+	}
+
+	logrus.Warn("Calculating the requests for the services, please wait...")
+
+	result = service.CalcRequests(servicesID, DBService.Services)
+	fmt.Println(result)
+
+	logrus.Info("Done!")
+
+	logrus.Warn("Calculating the average time for proxy, gateway and request for service. Please wait...")
+
+	result = service.CalcAverageTime(servicesID)
+	fmt.Println(result)
 
 	logrus.Info("Done!")
 }

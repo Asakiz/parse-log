@@ -10,9 +10,16 @@ import (
 )
 
 type Service struct {
-	DB      *mongo.Database
+	DB      *mongo.Collection
 	Context context.Context
 }
+
+type Arguments string
+
+const (
+	Consumers Arguments = "authenticated_entity.consumer_id.uuid"
+	Services  Arguments = "service.id"
+)
 
 func (s *Service) InsertLog(input []byte) error {
 	var gateway models.Gateway
@@ -21,47 +28,65 @@ func (s *Service) InsertLog(input []byte) error {
 		return err
 	}
 
-	if _, err := s.DB.Collection("gateway").InsertOne(s.Context, gateway); err != nil {
+	if _, err := s.DB.InsertOne(s.Context, &gateway); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (s *Service) DeleteLog(clientIP string) error {
-	if _, err := s.DB.Collection("gateway").DeleteOne(s.Context, bson.M{"clientip": clientIP}); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (s *Service) GetLog(clientIP string) (*models.Gateway, error) {
-	var gateway models.Gateway
-
-	if err := s.DB.Collection("gateway").FindOne(s.Context, bson.M{"clientip": clientIP}).Decode(&gateway); err != nil {
+func (s *Service) GetAllIDs(arg Arguments) ([]interface{}, error) {
+	consumerList, err := s.DB.Distinct(s.Context, string(arg), bson.M{})
+	if err != nil {
 		return nil, err
 	}
 
-	return &gateway, nil
+	return consumerList, nil
 }
 
-func (s *Service) GetRequestsByConsumer(clientIP string) uint16 {
-	gateway, err := s.GetLog(clientIP)
+func (s *Service) CalcRequests(List []interface{}, arg Arguments) []bson.M {
+	var result []bson.M
 
-	if err != nil {
-		return 0
+	for _, id := range List {
+		showLoadedCursor, err := s.DB.Aggregate(s.Context, []bson.M{
+			{"$match": bson.M{string(arg): id}},
+			{"$group": bson.M{"_id": "$" + string(arg), "requests": bson.M{"$sum": 1}}}})
+		if err != nil {
+			panic(err)
+		}
+
+		var showsLoaded []bson.M
+		if err = showLoadedCursor.All(s.Context, &showsLoaded); err != nil {
+			panic(err)
+		}
+
+		result = append(result, showsLoaded...)
 	}
 
-	return gateway.Request.Size
+	return result
 }
 
-func (s *Service) GetRequestsByService(clientIP string) uint16 {
-	gateway, err := s.GetLog(clientIP)
+func (s *Service) CalcAverageTime(List []interface{}) []bson.M {
+	var result []bson.M
 
-	if err != nil {
-		return 0
+	for _, id := range List {
+		showLoadedCursor, err := s.DB.Aggregate(s.Context, []bson.M{
+			{"$match": bson.M{"service.id": id}},
+			{"$group": bson.M{"_id": "$service.id", "proxy": bson.M{"$sum": "$latencies.proxy"},
+				"gateway": bson.M{"$sum": "$latencies.gateway"},
+				"request": bson.M{"$sum": "$latencies.request"},
+			}}})
+		if err != nil {
+			panic(err)
+		}
+
+		var showsLoaded []bson.M
+		if err = showLoadedCursor.All(s.Context, &showsLoaded); err != nil {
+			panic(err)
+		}
+
+		result = append(result, showsLoaded...)
 	}
 
-	return gateway.Service.Retries
+	return result
 }
