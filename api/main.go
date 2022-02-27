@@ -8,6 +8,7 @@ import (
 
 	"github.com/sirupsen/logrus"
 
+	"go.mongodb.org/mongo-driver/bson"
 	mongo "go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
@@ -47,6 +48,12 @@ func main() {
 
 	consumersID, err := service.GetAllIDs(DBService.Consumers)
 	if err != nil {
+		logrus.Fatal(err)
+	}
+
+	// create a index to make the search more fast since the consult to this ID is heavy
+	index := mongo.IndexModel{Keys: bson.M{"authenticated_entity.consumer_id.uuid": 1}}
+	if _, err := service.DB.Indexes().CreateOne(context.TODO(), index); err != nil {
 		logrus.Fatal(err)
 	}
 
