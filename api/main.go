@@ -2,12 +2,12 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"os"
 	DBService "parse-log/db"
 	"parse-log/utils"
 
 	"github.com/sirupsen/logrus"
+
 	mongo "go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
@@ -52,7 +52,10 @@ func main() {
 	logrus.Warn("Calculating the requests for the consumers, please wait...")
 
 	result := service.CalcRequests(consumersID, DBService.Consumers)
-	fmt.Println(result)
+
+	logrus.Warn("Calcutations done, generating the csv file")
+
+	utils.ExportCSV(result, "output/consumer-request.csv", utils.NoAverageTime)
 
 	logrus.Info("Done!")
 
@@ -64,14 +67,20 @@ func main() {
 	logrus.Warn("Calculating the requests for the services, please wait...")
 
 	result = service.CalcRequests(servicesID, DBService.Services)
-	fmt.Println(result)
+
+	logrus.Warn("Calcutations done, generating the csv file")
+
+	utils.ExportCSV(result, "output/service-request.csv", utils.NoAverageTime)
 
 	logrus.Info("Done!")
 
 	logrus.Warn("Calculating the average time for proxy, gateway and request for service. Please wait...")
 
 	result = service.CalcAverageTime(servicesID)
-	fmt.Println(result)
+
+	logrus.Warn("Calcutations done, generating the csv file")
+
+	utils.ExportCSV(result, "output/average-time-request.csv", utils.IsAverageTime)
 
 	logrus.Info("Done!")
 }

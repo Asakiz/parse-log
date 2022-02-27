@@ -36,12 +36,12 @@ func (s *Service) InsertLog(input []byte) error {
 }
 
 func (s *Service) GetAllIDs(arg Arguments) ([]interface{}, error) {
-	consumerList, err := s.DB.Distinct(s.Context, string(arg), bson.M{})
+	list, err := s.DB.Distinct(s.Context, string(arg), bson.M{})
 	if err != nil {
 		return nil, err
 	}
 
-	return consumerList, nil
+	return list, nil
 }
 
 func (s *Service) CalcRequests(List []interface{}, arg Arguments) []bson.M {
@@ -73,6 +73,7 @@ func (s *Service) CalcAverageTime(List []interface{}) []bson.M {
 			{"$group": bson.M{"_id": "$service.id", "proxy": bson.M{"$sum": "$latencies.proxy"},
 				"gateway": bson.M{"$sum": "$latencies.gateway"},
 				"request": bson.M{"$sum": "$latencies.request"},
+				"total":   bson.M{"$sum": 1},
 			}}})
 		if err != nil {
 			panic(err)
@@ -82,6 +83,12 @@ func (s *Service) CalcAverageTime(List []interface{}) []bson.M {
 		if err != nil {
 			return nil
 		}
+	}
+
+	for _, value := range result {
+		value["proxy"] = value["proxy"].(int32) / value["total"].(int32)
+		value["kong"] = value["gateway"].(int32) / value["total"].(int32)
+		value["request"] = value["request"].(int32) / value["total"].(int32)
 	}
 
 	return result

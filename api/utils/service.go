@@ -4,11 +4,20 @@ import (
 	"bufio"
 	"bytes"
 	"context"
+	"fmt"
 	"io"
 	"os"
 	"path/filepath"
 
 	DBService "parse-log/db"
+
+	"github.com/sirupsen/logrus"
+	"go.mongodb.org/mongo-driver/bson"
+)
+
+const (
+	IsAverageTime = true
+	NoAverageTime = false
 )
 
 func CheckFilePath(filePath []string) error {
@@ -64,6 +73,33 @@ func PopulateDB(service *DBService.Service, ctx context.Context, filePath string
 	if err != io.EOF {
 		return err
 	}
+
+	return nil
+}
+
+func ExportCSV(result []bson.M, filePath string, isAverageTime bool) error {
+	f, err := os.Create(filePath)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	w := bufio.NewWriter(f)
+
+	for _, value := range result {
+		valueStr := (fmt.Sprintf("%s, ", value["_id"]))
+		if isAverageTime {
+			if _, err := w.WriteString(fmt.Sprintf("%s, %d, %d, %d\n", valueStr, value["proxy"], value["gateway"], value["request"])); err != nil {
+				logrus.Fatal("Failed to write on the file")
+			}
+		} else {
+			if _, err := w.WriteString(fmt.Sprintf("%s%d\n", valueStr, value["requests"])); err != nil {
+				logrus.Fatal("Failed to write on the file")
+			}
+		}
+	}
+
+	w.Flush()
 
 	return nil
 }
