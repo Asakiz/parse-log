@@ -11,7 +11,6 @@ import (
 
 	DBService "parse-log/db"
 
-	"github.com/sirupsen/logrus"
 	"go.mongodb.org/mongo-driver/bson"
 )
 
@@ -35,7 +34,7 @@ func CheckFilePath(filePath []string) error {
 func PopulateDB(service *DBService.Service, ctx context.Context, filePath string) error {
 	file, err := os.Open(filePath)
 	if err != nil {
-		return err
+		return ErrToOpenFile
 	}
 	defer file.Close()
 
@@ -90,11 +89,11 @@ func ExportCSV(result []bson.M, filePath string, isAverageTime bool) error {
 		valueStr := (fmt.Sprintf("%s, ", value["_id"]))
 		if isAverageTime {
 			if _, err := w.WriteString(fmt.Sprintf("%s, %d, %d, %d\n", valueStr, value["proxy"], value["gateway"], value["request"])); err != nil {
-				logrus.Fatal("Failed to write on the file")
+				return ErrWriteToFile
 			}
 		} else {
 			if _, err := w.WriteString(fmt.Sprintf("%s%d\n", valueStr, value["requests"])); err != nil {
-				logrus.Fatal("Failed to write on the file")
+				return ErrWriteToFile
 			}
 		}
 	}

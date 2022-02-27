@@ -51,11 +51,16 @@ func main() {
 
 	logrus.Warn("Calculating the requests for the consumers, please wait...")
 
-	result := service.CalcRequests(consumersID, DBService.Consumers)
+	result, err := service.CalcRequests(consumersID, DBService.Consumers)
+	if err != nil {
+		logrus.Fatal(err)
+	}
 
 	logrus.Warn("Calcutations done, generating the csv file")
 
-	utils.ExportCSV(result, "output/consumer-request.csv", utils.NoAverageTime)
+	if err := utils.ExportCSV(result, "output/consumer-request.csv", utils.NoAverageTime); err != nil {
+		logrus.Fatal(err)
+	}
 
 	logrus.Info("Done!")
 
@@ -66,21 +71,31 @@ func main() {
 
 	logrus.Warn("Calculating the requests for the services, please wait...")
 
-	result = service.CalcRequests(servicesID, DBService.Services)
+	result, err = service.CalcRequests(servicesID, DBService.Services)
+	if err != nil {
+		logrus.Fatal(err)
+	}
 
 	logrus.Warn("Calcutations done, generating the csv file")
 
-	utils.ExportCSV(result, "output/service-request.csv", utils.NoAverageTime)
+	if err := utils.ExportCSV(result, "output/service-request.csv", utils.NoAverageTime); err != nil {
+		logrus.Fatal(err)
+	}
 
 	logrus.Info("Done!")
 
 	logrus.Warn("Calculating the average time for proxy, gateway and request for service. Please wait...")
 
-	result = service.CalcAverageTime(servicesID)
+	result, err = service.CalcAverageTime(servicesID)
+	if err != nil {
+		logrus.Fatal(err)
+	}
 
 	logrus.Warn("Calcutations done, generating the csv file")
 
-	utils.ExportCSV(result, "output/average-time-request.csv", utils.IsAverageTime)
+	if err := utils.ExportCSV(result, "output/average-time-request.csv", utils.IsAverageTime); err != nil {
+		logrus.Fatal(err)
+	}
 
 	logrus.Info("Done!")
 }

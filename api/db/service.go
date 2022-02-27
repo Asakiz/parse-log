@@ -44,7 +44,7 @@ func (s *Service) GetAllIDs(arg Arguments) ([]interface{}, error) {
 	return list, nil
 }
 
-func (s *Service) CalcRequests(List []interface{}, arg Arguments) []bson.M {
+func (s *Service) CalcRequests(List []interface{}, arg Arguments) ([]bson.M, error) {
 	var result []bson.M
 
 	for _, id := range List {
@@ -52,19 +52,19 @@ func (s *Service) CalcRequests(List []interface{}, arg Arguments) []bson.M {
 			{"$match": bson.M{string(arg): id}},
 			{"$group": bson.M{"_id": "$" + string(arg), "requests": bson.M{"$sum": 1}}}})
 		if err != nil {
-			panic(err)
+			return nil, err
 		}
 
 		result, err = extractResult(cursor, result)
 		if err != nil {
-			return nil
+			return nil, err
 		}
 	}
 
-	return result
+	return result, nil
 }
 
-func (s *Service) CalcAverageTime(List []interface{}) []bson.M {
+func (s *Service) CalcAverageTime(List []interface{}) ([]bson.M, error) {
 	var result []bson.M
 
 	for _, id := range List {
@@ -76,12 +76,12 @@ func (s *Service) CalcAverageTime(List []interface{}) []bson.M {
 				"total":   bson.M{"$sum": 1},
 			}}})
 		if err != nil {
-			panic(err)
+			return nil, err
 		}
 
 		result, err = extractResult(cursor, result)
 		if err != nil {
-			return nil
+			return nil, err
 		}
 	}
 
@@ -91,7 +91,7 @@ func (s *Service) CalcAverageTime(List []interface{}) []bson.M {
 		value["request"] = value["request"].(int32) / value["total"].(int32)
 	}
 
-	return result
+	return result, nil
 }
 
 func extractResult(cursor *mongo.Cursor, result []bson.M) ([]bson.M, error) {
