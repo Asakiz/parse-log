@@ -49,10 +49,10 @@ func (s *Service) GetAllIDs(arg Arguments) ([]interface{}, error) {
 }
 
 // Function to calculate all the requests based on the input list
-func (s *Service) CalculateQuery(List []interface{}, arg Arguments, query bson.M) ([]bson.M, error) {
+func (s *Service) CalculateQuery(list []interface{}, arg Arguments, query bson.M) ([]bson.M, error) {
 	var result []bson.M
 
-	for _, id := range List {
+	for _, id := range list {
 		// the logic of the query is to search for all the entries correspond to the ID
 		// then sum all the occurrences
 		cursor, err := s.Collection.Aggregate(s.Context, []bson.M{
