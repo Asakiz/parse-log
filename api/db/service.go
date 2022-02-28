@@ -10,16 +10,15 @@ import (
 )
 
 type Service struct {
-	DB      *mongo.Collection
-	Context context.Context
+	Client     *mongo.Client
+	Collection *mongo.Collection
+	Context    context.Context
 }
 
-type Arguments string
-
-const (
-	Consumers Arguments = "authenticated_entity.consumer_id.uuid"
-	Services  Arguments = "service.id"
-)
+type Arguments struct {
+	FieldName     string
+	IsAverageTime bool
+}
 
 // Function to insert the log on the database
 // recieve a array of bytes and convert to the gateway struct
@@ -32,7 +31,7 @@ func (s *Service) InsertLog(input []byte) error {
 	}
 
 	// insert on the database a Gateway entry
-	if _, err := s.DB.InsertOne(s.Context, &gateway); err != nil {
+	if _, err := s.Collection.InsertOne(s.Context, &gateway); err != nil {
 		return err
 	}
 
@@ -41,7 +40,7 @@ func (s *Service) InsertLog(input []byte) error {
 
 // Function to get all distinct IDs stored on the database
 func (s *Service) GetAllIDs(arg Arguments) ([]interface{}, error) {
-	list, err := s.DB.Distinct(s.Context, string(arg), bson.M{})
+	list, err := s.Collection.Distinct(s.Context, string(arg.FieldName), bson.M{})
 	if err != nil {
 		return nil, err
 	}
@@ -50,15 +49,14 @@ func (s *Service) GetAllIDs(arg Arguments) ([]interface{}, error) {
 }
 
 // Function to calculate all the requests based on the input list
-func (s *Service) CalcRequests(List []interface{}, arg Arguments) ([]bson.M, error) {
+func (s *Service) CalculateQuery(List []interface{}, arg Arguments, query bson.M) ([]bson.M, error) {
 	var result []bson.M
 
 	for _, id := range List {
 		// the logic of the query is to search for all the entries correspond to the ID
 		// then sum all the occurrences
-		cursor, err := s.DB.Aggregate(s.Context, []bson.M{
-			{"$match": bson.M{string(arg): id}},
-			{"$group": bson.M{"_id": "$" + string(arg), "requests": bson.M{"$sum": 1}}}})
+		cursor, err := s.Collection.Aggregate(s.Context, []bson.M{
+			{"$match": bson.M{string(arg.FieldName): id}}, query})
 		if err != nil {
 			return nil, err
 		}
@@ -70,39 +68,13 @@ func (s *Service) CalcRequests(List []interface{}, arg Arguments) ([]bson.M, err
 		}
 	}
 
-	return result, nil
-}
-
-// Function to calculate the average time of all the latencies
-func (s *Service) CalcAverageTime(List []interface{}) ([]bson.M, error) {
-	var result []bson.M
-
-	for _, id := range List {
-		// the logic of the query is to search for all the entries correspond to the ID
-		// then sum all the occurrences and the fields: proxy, gateway and request
-		cursor, err := s.DB.Aggregate(s.Context, []bson.M{
-			{"$match": bson.M{"service.id": id}},
-			{"$group": bson.M{"_id": "$service.id", "proxy": bson.M{"$sum": "$latencies.proxy"},
-				"gateway": bson.M{"$sum": "$latencies.gateway"},
-				"request": bson.M{"$sum": "$latencies.request"},
-				"total":   bson.M{"$sum": 1},
-			}}})
-		if err != nil {
-			return nil, err
+	if arg.IsAverageTime {
+		// this is to calculate the average time of every field
+		for _, value := range result {
+			value["proxy"] = value["proxy"].(int32) / value["total"].(int32)
+			value["kong"] = value["gateway"].(int32) / value["total"].(int32)
+			value["request"] = value["request"].(int32) / value["total"].(int32)
 		}
-
-		// extract the result into a map
-		result, err = extractResult(cursor, result)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	// this is to calculate the average time of every field
-	for _, value := range result {
-		value["proxy"] = value["proxy"].(int32) / value["total"].(int32)
-		value["kong"] = value["gateway"].(int32) / value["total"].(int32)
-		value["request"] = value["request"].(int32) / value["total"].(int32)
 	}
 
 	return result, nil

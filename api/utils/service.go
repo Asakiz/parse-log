@@ -12,11 +12,13 @@ import (
 	DBService "parse-log/db"
 
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
+	"go.mongodb.org/mongo-driver/mongo/readpref"
 )
 
 const (
 	IsAverageTime = true
-	NoAverageTime = false
 )
 
 // Function to check if the input file is valid
@@ -33,6 +35,22 @@ func CheckFilePath(filePath []string) error {
 	}
 
 	return nil
+}
+
+func InitDatabase() (*DBService.Service, error) {
+	client, err := mongo.Connect(context.TODO(), options.Client().ApplyURI("mongodb://127.0.0.1:27017/"))
+	if err != nil {
+		return nil, err
+	}
+
+	// try to ping mongoDB before go to the next step
+	if err = client.Ping(context.TODO(), readpref.Primary()); err != nil {
+		return nil, err
+	}
+
+	dbService := DBService.Service{Client: client, Collection: client.Database("main").Collection("gateway"), Context: context.TODO()}
+
+	return &dbService, nil
 }
 
 // Function to populate the database base on the input file
@@ -91,7 +109,7 @@ func PopulateDB(service *DBService.Service, ctx context.Context, filePath string
 
 // function to export the results to a CSV file
 // save the results of the calculation based on the filePath argument
-func ExportCSV(result []bson.M, filePath string, isAverageTime bool) error {
+func ExportCSV(result []bson.M, filePath string, isAverageTime ...bool) error {
 	// check if is possible to create the file with on the filePath
 	f, err := os.Create(filePath)
 	if err != nil {
@@ -104,9 +122,9 @@ func ExportCSV(result []bson.M, filePath string, isAverageTime bool) error {
 	for _, value := range result {
 		// this line is necessary as it will be repeated in both cases
 		valueStr := (fmt.Sprintf("%s, ", value["_id"]))
-		if isAverageTime {
+		if len(isAverageTime) > 0 && isAverageTime[0] {
 			// this partically is created because the average time has three values to write
-			if _, err := w.WriteString(fmt.Sprintf("%s, %d, %d, %d\n", valueStr, value["proxy"], value["gateway"], value["request"])); err != nil {
+			if _, err := w.WriteString(fmt.Sprintf("%s%d, %d, %d\n", valueStr, value["proxy"], value["gateway"], value["request"])); err != nil {
 				return ErrWriteToFile
 			}
 		} else {
