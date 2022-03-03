@@ -47,16 +47,20 @@ func main() {
 
 	logrus.Warn("Calculating the requests for the consumers")
 
+	// the logic of the query is to search for all the entries correspond to the ID
+	// then sum all the occurrences
 	result, err := db.CalculateQuery(consumersID,
 		DBService.Arguments{FieldName: "authenticated_entity.consumer_id.uuid"},
-		bson.M{"$group": bson.M{"_id": "$" + "authenticated_entity.consumer_id.uuid", "requests": bson.M{"$sum": 1}}})
+		bson.M{"$group": bson.M{"_id": "$authenticated_entity.consumer_id.uuid", "requests": bson.M{"$sum": 1}}})
 	if err != nil {
 		logrus.Fatal(err)
 	}
 
 	logrus.Warn("Calcutations done, generating the csv file")
 
-	if err := utils.ExportCSV(result, "consumer-request.csv"); err != nil {
+	if err := utils.ExportCSV(utils.Output{FilePath: "consumer-request.csv",
+		Result: utils.ResultMap{
+			Value: result, Field: []string{"requests"}}}); err != nil {
 		logrus.Fatal(err)
 	}
 
@@ -71,14 +75,15 @@ func main() {
 	// then sum all the occurrences
 	result, err = db.CalculateQuery(servicesID,
 		DBService.Arguments{FieldName: "service.id"},
-		bson.M{"$group": bson.M{"_id": "$" + "service.id", "requests": bson.M{"$sum": 1}}})
+		bson.M{"$group": bson.M{"_id": "$service.id", "requests": bson.M{"$sum": 1}}})
 	if err != nil {
 		logrus.Fatal(err)
 	}
 
 	logrus.Warn("Calcutations done, generating the csv file")
 
-	if err := utils.ExportCSV(result, "service-request.csv"); err != nil {
+	if err := utils.ExportCSV(utils.Output{FilePath: "service-request.csv",
+		Result: utils.ResultMap{Value: result, Field: []string{"requests"}}}); err != nil {
 		logrus.Fatal(err)
 	}
 
@@ -99,7 +104,16 @@ func main() {
 
 	logrus.Warn("Calcutations done, generating the csv file")
 
-	if err := utils.ExportCSV(result, "average-time-request.csv", utils.IsAverageTime); err != nil {
+	if err := utils.ExportCSV(utils.Output{
+		FilePath: "average-time-request.csv",
+		Result: utils.ResultMap{
+			Value: result,
+			Field: []string{
+				"proxy",
+				"gateway",
+				"request",
+			},
+		}}); err != nil {
 		logrus.Fatal(err)
 	}
 }

@@ -17,9 +17,15 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 )
 
-const (
-	IsAverageTime = true
-)
+type Output struct {
+	FilePath string
+	Result   ResultMap
+}
+
+type ResultMap struct {
+	Value []bson.M
+	Field []string
+}
 
 // Function to check if the input file is valid
 // If encounters any errors, it will return
@@ -109,9 +115,8 @@ func PopulateDB(service *DBService.Service, ctx context.Context, filePath string
 
 // function to export the results to a CSV file
 // save the results of the calculation based on the filePath argument
-func ExportCSV(result []bson.M, filePath string, isAverageTime ...bool) error {
-	// check if is possible to create the file with on the filePath
-	f, err := os.Create(filePath)
+func ExportCSV(output Output) error {
+	f, err := os.Create(output.FilePath)
 	if err != nil {
 		return err
 	}
@@ -119,19 +124,27 @@ func ExportCSV(result []bson.M, filePath string, isAverageTime ...bool) error {
 
 	w := bufio.NewWriter(f)
 
-	for _, value := range result {
-		// this line is necessary as it will be repeated in both cases
+	var fieldStr string
+
+	for _, value := range output.Result.Value {
 		valueStr := (fmt.Sprintf("%s, ", value["_id"]))
-		if len(isAverageTime) > 0 && isAverageTime[0] {
-			// this partically is created because the average time has three values to write
-			if _, err := w.WriteString(fmt.Sprintf("%s%d, %d, %d\n", valueStr, value["proxy"], value["gateway"], value["request"])); err != nil {
-				return ErrWriteToFile
+		if _, err := w.WriteString(valueStr); err != nil {
+			return ErrWriteToFile
+		}
+
+		for i, field := range output.Result.Field {
+			if i-1 == len(output.Result.Field) {
+				fieldStr = fmt.Sprintf("%d", value[field])
+			} else {
+				fieldStr = fmt.Sprintf("%d, ", value[field])
 			}
-		} else {
-			if _, err := w.WriteString(fmt.Sprintf("%s%d\n", valueStr, value["requests"])); err != nil {
+
+			if _, err := w.WriteString(fieldStr); err != nil {
 				return ErrWriteToFile
 			}
 		}
+
+		w.WriteString("\n")
 	}
 
 	w.Flush()
