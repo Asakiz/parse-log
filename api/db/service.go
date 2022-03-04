@@ -25,12 +25,10 @@ type Arguments struct {
 func (s *Service) InsertLog(input []byte) error {
 	var gateway models.Gateway
 
-	// convert the input into the Gateway model
 	if err := json.Unmarshal(input, &gateway); err != nil {
 		return err
 	}
 
-	// insert on the database a Gateway entry
 	if _, err := s.Collection.InsertOne(s.Context, &gateway); err != nil {
 		return err
 	}
@@ -53,15 +51,12 @@ func (s *Service) CalculateQuery(list []interface{}, arg Arguments, query bson.M
 	var result []bson.M
 
 	for _, id := range list {
-		// the logic of the query is to search for all the entries correspond to the ID
-		// then sum all the occurrences
 		cursor, err := s.Collection.Aggregate(s.Context, []bson.M{
 			{"$match": bson.M{string(arg.FieldName): id}}, query})
 		if err != nil {
 			return nil, err
 		}
 
-		// extract the result into a map
 		result, err = extractResult(cursor, result)
 		if err != nil {
 			return nil, err
@@ -69,7 +64,6 @@ func (s *Service) CalculateQuery(list []interface{}, arg Arguments, query bson.M
 	}
 
 	if arg.IsAverageTime {
-		// this is to calculate the average time of every field
 		for _, value := range result {
 			value["proxy"] = value["proxy"].(int32) / value["total"].(int32)
 			value["kong"] = value["gateway"].(int32) / value["total"].(int32)
@@ -80,7 +74,6 @@ func (s *Service) CalculateQuery(list []interface{}, arg Arguments, query bson.M
 	return result, nil
 }
 
-// Function to extract the result into a map, so is can be accessed more easily
 func extractResult(cursor *mongo.Cursor, result []bson.M) ([]bson.M, error) {
 	var showsLoaded []bson.M
 

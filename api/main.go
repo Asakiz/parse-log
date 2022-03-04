@@ -39,7 +39,6 @@ func main() {
 		logrus.Fatal(err)
 	}
 
-	// create a index to make the search more fast since the consult to this ID is heavy
 	index := mongo.IndexModel{Keys: bson.M{"authenticated_entity.consumer_id.uuid": 1}}
 	if _, err := db.Collection.Indexes().CreateOne(context.TODO(), index); err != nil {
 		logrus.Fatal(err)
@@ -47,8 +46,6 @@ func main() {
 
 	logrus.Warn("Calculating the requests for the consumers")
 
-	// the logic of the query is to search for all the entries correspond to the ID
-	// then sum all the occurrences
 	result, err := db.CalculateQuery(consumersID,
 		DBService.Arguments{FieldName: "authenticated_entity.consumer_id.uuid"},
 		bson.M{"$group": bson.M{"_id": "$authenticated_entity.consumer_id.uuid", "requests": bson.M{"$sum": 1}}})
@@ -71,8 +68,6 @@ func main() {
 
 	logrus.Warn("Calculating the requests for the services")
 
-	// the logic of the query is to search for all the entries correspond to the ID
-	// then sum all the occurrences
 	result, err = db.CalculateQuery(servicesID,
 		DBService.Arguments{FieldName: "service.id"},
 		bson.M{"$group": bson.M{"_id": "$service.id", "requests": bson.M{"$sum": 1}}})
@@ -89,8 +84,6 @@ func main() {
 
 	logrus.Warn("Calculating the average time for proxy, gateway and request for service")
 
-	// the logic of the query is to search for all the entries correspond to the ID
-	// then sum all the occurrences and the fields: proxy, gateway and request
 	result, err = db.CalculateQuery(servicesID,
 		DBService.Arguments{FieldName: "service.id", IsAverageTime: true},
 		bson.M{"$group": bson.M{"_id": "$service.id",

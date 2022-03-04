@@ -30,12 +30,10 @@ type ResultMap struct {
 // Function to check if the input file is valid
 // If encounters any errors, it will return
 func CheckFilePath(filePath []string) error {
-	// check if the size of std.input is greater than 2
 	if len(filePath) < 2 {
 		return ErrMissingArguments
 	}
 
-	// match the extension if a regex to check if is valid
 	if match, _ := filepath.Match(".txt", filepath.Ext(filePath[1])); !match {
 		return ErrFileExtension
 	}
@@ -49,7 +47,6 @@ func InitDatabase() (*DBService.Service, error) {
 		return nil, err
 	}
 
-	// try to ping mongoDB before go to the next step
 	if err = client.Ping(context.TODO(), readpref.Primary()); err != nil {
 		return nil, err
 	}
@@ -63,14 +60,12 @@ func InitDatabase() (*DBService.Service, error) {
 // read line by line of the file and insert on database
 // util reach the EOF.
 func PopulateDB(service *DBService.Service, ctx context.Context, filePath string) error {
-	// check if the filePath exists
 	file, err := os.Open(filePath)
 	if err != nil {
 		return ErrToOpenFile
 	}
 	defer file.Close()
 
-	// create a new buffer reader to the file
 	reader := bufio.NewReader(file)
 	for {
 		var buffer bytes.Buffer
@@ -81,8 +76,6 @@ func PopulateDB(service *DBService.Service, ctx context.Context, filePath string
 			l, isPrefix, err = reader.ReadLine()
 			buffer.Write(l)
 
-			// check if the line is too long for the buffer, if it's isPrefix is going to be set true
-			// then return the beginning of the line, the rest of the line will be returned later
 			if !isPrefix {
 				break
 			}
@@ -95,12 +88,10 @@ func PopulateDB(service *DBService.Service, ctx context.Context, filePath string
 			}
 		}
 
-		// if encounter a EOF the function stops and return the controller to main
 		if err == io.EOF {
 			break
 		}
 
-		// insert the bytes read into the database
 		if err := service.InsertLog(buffer.Bytes()); err != nil {
 			return err
 		}
