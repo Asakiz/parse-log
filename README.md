@@ -1,20 +1,12 @@
 # parse-log
 
 A simple program to extract all the data on a log file, store on a database and make some calculations with this data.
-
-## Build and Up the mongoDB container
-
-    docker-compose up --build -d
         
 ## Build and Run the application
-  Need to be on source code folder, with in that case is ``api/``
+    make all
 
-    go run main.go <file-path>
+Put the log file to extract the data on ``api/``. The log file should be named `logs.txt`. The format the log should be is can be found [here](https://drive.google.com/file/d/1b9mpy5fXb3yQwcRDu03-pTBA2QCcLLTK/edit).
 
-## Linux user/shell
-
-    make all input=<file-path>
-    
 ---
 **NOTE**
 

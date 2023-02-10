@@ -42,7 +42,7 @@ func CheckFilePath(filePath []string) error {
 }
 
 func InitDatabase() (*DBService.Service, error) {
-	client, err := mongo.Connect(context.TODO(), options.Client().ApplyURI("mongodb://127.0.0.1:27017/"))
+	client, err := mongo.Connect(context.TODO(), options.Client().ApplyURI("mongodb://parse-log-mongodb:27017/"))
 	if err != nil {
 		return nil, err
 	}

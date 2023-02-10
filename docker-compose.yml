@@ -2,8 +2,16 @@ version: '3.7'
 
 services:
   mongodb:
+    container_name: parse-log-mongodb
     image: 'mongo:4.4.10'
     ports:
       - '27017:27017'
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
+
+  parse-log:
+    image: "parse-log"
+    build:
+      context: "api/"
+      dockerfile: "Dockerfile"
+    container_name: "parse-log"
